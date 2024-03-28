@@ -1,0 +1,5 @@
+build/
+DecryptedTextFolder/
+EncryptedTextFolder/
+PlainTextFolder/
+.vscode/

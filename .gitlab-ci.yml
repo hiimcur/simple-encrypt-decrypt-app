@@ -1,0 +1,101 @@
+stages:          
+  - build
+  - test        
+  - deploy      
+
+build-job:       
+  stage: build
+  before_script:
+    - ls
+    - apt-get update -y
+    - apt-get install cmake -y
+    - apt-get install libgtest-dev -y
+    - cd /usr/src/gtest
+    - cmake CMakeLists.txt
+    - make
+    - ls
+    - cd lib
+    - cp *.a /usr/lib
+    - cd $CI_PROJECT_DIR  
+    - ls
+  script:
+    - echo "Compiling the code..."
+    - mkdir -p build
+    - cd build
+    - cmake ../src
+    - make
+    - echo "Compile complete."
+  artifacts:
+    paths:
+      - build/
+
+unit-test-libLog-job:   
+  stage: test    
+  before_script:
+    - apt-get update -y
+    - apt-get install lcov -y
+    - apt-get install libgtest-dev -y
+    - dpkg -L libgtest-dev
+    - ls -l /usr/include/gtest/
+    - chmod -R +x /usr/include/gtest/
+    - cd $CI_PROJECT_DIR  
+  script:
+    - echo "Running unit tests libLog"
+    - ls
+    - cd build
+    - cd bin
+    - ./logTest
+    - cd ../libLog/test/CMakeFiles/logTest.dir
+    - lcov --directory ./ --capture --output-file liblog_coverage.info
+    - genhtml liblog_coverage.info --output-directory liblog_coverage_html
+  dependencies:
+    - build-job
+
+deploy-libLog-example-job:
+  stage: deploy
+  before_script:
+    - apt-get update -y
+    - apt-get install expect -y
+  script:
+    - echo "Running libLog example"
+    - ls
+    - cd build
+    - cd bin
+    - chmod +x logExample 
+    - expect ../../input_script.exp
+    - echo "libLog successfully run."
+  dependencies:
+    - build-job
+    - unit-test-libLog-job
+
+deploy-libAES-example-job:
+  stage: deploy
+  script:
+    - echo "Running libAES example"
+    - ls
+    - cd build
+    - cd bin
+    - ./aesExample
+    - echo "libAES successfully run."
+  dependencies:
+    - build-job
+
+deploy-job:      
+  stage: deploy 
+  before_script:
+    - ls
+    - cd build
+    - cd bin
+    - mkdir "plainText"
+    - cd "plainText"
+    - echo "This is a demo test" > test1.txt
+    - cd ..
+  script:
+    - echo "Deploying application..."
+    - ls
+    - ./appAES "-e" "plainText" "encryptFolder"
+    - ./appAES "-d" "encryptFolder" "decryptFolder"
+    - echo "Application successfully deployed."
+  dependencies:
+    - build-job
+    - unit-test-libLog-job

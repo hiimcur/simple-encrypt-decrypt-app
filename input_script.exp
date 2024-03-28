@@ -1,0 +1,6 @@
+#!/usr/bin/expect
+
+spawn ./logExample
+expect "Select log level:"
+send "3\r"
+interact
